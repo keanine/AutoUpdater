@@ -176,13 +176,16 @@ namespace AutoUpdaterLib
             {
                 if (fileName.StartsWith("delete "))
                 {
-                    if (File.Exists(fileName))
+                    string file = fileName.Substring("delete ".Length);
+                    if (File.Exists(file))
                     {
-                        File.Delete(fileName);
+                        File.Delete(file);
                     }
                 }
-
-                DownloadFile(updateServerURL, fileName, string.Empty, fileName);
+                else
+                {
+                    DownloadFile(updateServerURL, fileName, string.Empty, fileName);
+                }
             }
         }
     }
