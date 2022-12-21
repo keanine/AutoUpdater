@@ -1,1 +1,2 @@
 testfile.txt
+delete testfile2.txt
