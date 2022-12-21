@@ -20,7 +20,7 @@ namespace AutoUpdater
 
             if (updatesFound)
             {
-                DialogResult result = System.Windows.Forms.MessageBox.Show("text", "caption", MessageBoxButtons.YesNo, MessageBoxIcon.Information, MessageBoxDefaultButton.Button1);
+                DialogResult result = System.Windows.Forms.MessageBox.Show("A new update has been found. Do you want to update?", "Update Found", MessageBoxButtons.YesNo, MessageBoxIcon.Information, MessageBoxDefaultButton.Button1);
 
                 if (result == DialogResult.Yes)
                 {

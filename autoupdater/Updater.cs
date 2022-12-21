@@ -174,6 +174,14 @@ namespace AutoUpdaterLib
 
             foreach (var fileName in updateList)
             {
+                if (fileName.StartsWith("delete "))
+                {
+                    if (File.Exists(fileName))
+                    {
+                        File.Delete(fileName);
+                    }
+                }
+
                 DownloadFile(updateServerURL, fileName, string.Empty, fileName);
             }
         }
