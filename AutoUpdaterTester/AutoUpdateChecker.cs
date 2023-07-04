@@ -13,14 +13,17 @@ namespace AutoUpdater
         {
             //AutoUpdaterLib.Updater.CheckAndDownloadUpdates();
 
-            bool updatesFound = AutoUpdaterLib.Updater.CheckForUpdates();
+            bool updatesFound = AutoUpdaterLib.Updater.CheckForUpdates(
+                "UpdateTester",
+                "https://raw.githubusercontent.com/keanine/AutoUpdater/main/UpdateServer/",
+                "version.ini");
 
             Thread thread = new Thread(RepeatPhrase);
             thread.Start();
 
             if (updatesFound)
             {
-                DialogResult result = System.Windows.Forms.MessageBox.Show("A new update has been found. Do you want to update?", "Update Found", MessageBoxButtons.YesNo, MessageBoxIcon.Information, MessageBoxDefaultButton.Button1);
+                DialogResult result = MessageBox.Show("A new update has been found. Do you want to update?", "Update Found", MessageBoxButtons.YesNo, MessageBoxIcon.Information, MessageBoxDefaultButton.Button1);
 
                 if (result == DialogResult.Yes)
                 {
@@ -28,13 +31,15 @@ namespace AutoUpdater
                     proc1.UseShellExecute = true;
                     proc1.CreateNoWindow = false;
                     proc1.WorkingDirectory = @"";
-                    proc1.Arguments = "\"autoupdater.dll\"";
+                    proc1.Arguments = "\"autoupdater.dll\" \"UpdateTester\" \"https://raw.githubusercontent.com/keanine/AutoUpdater/main/UpdateServer/\" \"version.ini\" \"updatelist.txt\" \"AutoUpdaterTester.exe\"";
                     proc1.FileName = "dotnet.exe";
                     Process.Start(proc1);
 
                     System.Environment.Exit(1);
                 }
             }
+
+            
 
         }
 

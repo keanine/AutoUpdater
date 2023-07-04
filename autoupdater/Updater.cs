@@ -1,4 +1,5 @@
-﻿using System;
+﻿using AutoUpdater;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -11,25 +12,32 @@ namespace AutoUpdaterLib
 {
     public class Updater
     {
-        private static string applicationName = "UpdaterTesting";
-        private static string updateServerURL = @"https://raw.githubusercontent.com/keanine/AutoUpdater/main/UpdateServer/";
-        private static string updateFileName = "version.ini";
-        private static string updateListFileName = "updatelist.txt";
-        private static string executableFileName = "AutoUpdaterTester.exe";
-
         private static string appdata = string.Empty;
 
+        private static bool outputDebugInfo = true;
 
-        public static void CheckAndDownloadUpdates()
+        internal static void RunUpdater()
         {
-            Thread.Sleep(500);
+            string[] args = Environment.GetCommandLineArgs();
+            CheckAndDownloadUpdates(args[1], args[2], args[3], args[4], args[5]);
+        }
+
+        public static void CheckAndDownloadUpdates(string applicationName, string updateServerURL, string versionFileName, string updateListFileName, string executableFileName)
+        {
+            UpdaterDebug.WriteLine("Running update with debug output:");
+            UpdaterDebug.WriteLine(applicationName);
+            UpdaterDebug.WriteLine(updateServerURL);
+            UpdaterDebug.WriteLine(versionFileName);
+            UpdaterDebug.WriteLine(updateListFileName);
+            UpdaterDebug.WriteLine(executableFileName + "\n");
+            Thread.Sleep(200);
 
             Console.WriteLine("Checking for Updates");
-            bool updatesFound = CheckForUpdates();
+            bool updatesFound = CheckForUpdates(applicationName, updateServerURL, versionFileName);
 
             if (updatesFound)
             {
-                DownloadUpdate();
+                DownloadUpdate(updateServerURL, versionFileName, updateListFileName);
                 Console.WriteLine("Download Complete!");
 
                 var proc1 = new ProcessStartInfo();
@@ -39,12 +47,15 @@ namespace AutoUpdaterLib
                 proc1.Arguments = "";
                 proc1.FileName = executableFileName;
                 Process.Start(proc1);
-
-                //System.Environment.Exit(1);
             }
+            else
+            {
+                Console.WriteLine("Unknown error");
+            }
+            Thread.Sleep(5000000);
         }
 
-        public static bool CheckForUpdates()
+        public static bool CheckForUpdates(string applicationName, string updateServerURL, string versionFileName)
         {
             //System.Diagnostics.Debugger.Break();
 
@@ -52,15 +63,24 @@ namespace AutoUpdaterLib
 
             Directory.CreateDirectory(appdata);
 
-            string newIniFilePath = DownloadFile(updateServerURL, updateFileName, appdata, updateFileName);
+            string newIniFilePath = DownloadFile(updateServerURL, versionFileName, appdata, versionFileName);
+
+            AutoUpdater.UpdaterDebug.WriteLine("Downloaded file: " + newIniFilePath);
+
+            if (newIniFilePath == string.Empty)
+                return false;
+
             IniUtility newIniFile = new IniUtility(newIniFilePath);
 
-            if (File.Exists(updateFileName))
+            if (File.Exists(versionFileName))
             {
-                IniUtility existingIniFile = new IniUtility(updateFileName);
+                IniUtility existingIniFile = new IniUtility(versionFileName);
 
                 string oldVersionStr = existingIniFile.Read("Version", "Main");
                 string newVersionStr = newIniFile.Read("Version", "Main");
+
+                AutoUpdater.UpdaterDebug.WriteLine("Old INI: \"" + oldVersionStr + "\"");
+                AutoUpdater.UpdaterDebug.WriteLine("New INI: " + newVersionStr);
 
                 float oldVersionNumber = float.Parse(System.Text.RegularExpressions.Regex.Match(oldVersionStr, @"[+-]?([0-9]*[.])?[0-9]+").Value);
                 float newVersionNumber = float.Parse(System.Text.RegularExpressions.Regex.Match(newVersionStr, @"[+-]?([0-9]*[.])?[0-9]+").Value);
@@ -79,67 +99,36 @@ namespace AutoUpdaterLib
                 else if (newVersionNumber > oldVersionNumber)
                 {
                     Console.WriteLine("New version found.");
-                    //DownloadUpdate();
-                    //File.Move(newIniFilePath, updateFileName, true);
-                    //Console.WriteLine($"{applicationName} Updated Successfully");
                     return true;
                 }
             }
             else
             {
                 Console.WriteLine($"No previous version of {applicationName} found.");
-                //DownloadUpdate();
-                //File.Move(newIniFilePath, updateFileName, true);
-                //Console.WriteLine($"{applicationName} Downloaded Successfully");
                 return true;
             }
 
-            throw new System.Exception("The update server could not be contacted");
+            Console.WriteLine($"Error: The update server could not be contacted or the versions could not be determined");
+            return false;
+            //throw new System.Exception("The update server could not be contacted");
         }
 
-        //public static void CheckForUpdates()
+        ///// <summary>
+        ///// Download a file from a base URL and a filename
+        ///// </summary>
+        ///// <param name="url"></param>
+        ///// <param name="fileName"></param>
+        ///// <returns>Path of the downloaded file</returns>
+        //public static string DownloadFile(string baseURL, string fileName, string outputFolder, string outputName)
         //{
-        //    appdata = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Keanine\\AutoUpdater\\" + applicationName + "\\";
-
-        //    Directory.CreateDirectory(appdata);
-
-        //    string newIniFilePath = DownloadFile(updateServerURL, updateFileName, appdata, updateFileName);
-        //    IniUtility newIniFile = new IniUtility(newIniFilePath);
-
-        //    if (File.Exists(updateFileName))
+        //    using (var client = new HttpClient())
         //    {
-        //        IniUtility existingIniFile = new IniUtility(updateFileName);
+        //        client.BaseAddress = new Uri(baseURL);
+        //        string result = client.GetStringAsync(fileName).Result;
 
-        //        string oldVersionStr = existingIniFile.Read("Version", "Main");
-        //        string newVersionStr = newIniFile.Read("Version", "Main");
-
-        //        float oldVersionNumber = float.Parse(System.Text.RegularExpressions.Regex.Match(oldVersionStr, @"[+-]?([0-9]*[.])?[0-9]+").Value);
-        //        float newVersionNumber = float.Parse(System.Text.RegularExpressions.Regex.Match(newVersionStr, @"[+-]?([0-9]*[.])?[0-9]+").Value);
-
-        //        if (newVersionNumber == oldVersionNumber)
-        //        {
-        //            //if the letters in the number are "higher" then its newer
-        //                Console.WriteLine($"{applicationName} is already up to date, Version {oldVersionStr}");
-        //        }
-        //        else if (newVersionNumber < oldVersionNumber)
-        //        {
-        //            Console.WriteLine($"Error. Local version is {oldVersionStr} but the latest version of {applicationName} is {newVersionStr}");
-        //        }
-        //        else if(newVersionNumber > oldVersionNumber)
-        //        {
-        //            Console.WriteLine("New version found. Updating...");
-        //            DownloadUpdate();
-        //            // Download the new version, then
-        //            File.Move(newIniFilePath, updateFileName, true);
-        //            Console.WriteLine($"{applicationName} Updated Successfully");
-        //        }
-        //    }
-        //    else
-        //    {
-        //        Console.WriteLine($"No previous version of {applicationName} found. Downloading...");
-        //        DownloadUpdate();
-        //        File.Move(newIniFilePath, updateFileName, true);
-        //        Console.WriteLine($"{applicationName} Downloaded Successfully");
+        //        string outputPath = Path.Combine(outputFolder, fileName);
+        //        File.WriteAllText(outputPath, result);
+        //        return outputPath;
         //    }
         //}
 
@@ -151,24 +140,33 @@ namespace AutoUpdaterLib
         /// <returns>Path of the downloaded file</returns>
         public static string DownloadFile(string baseURL, string fileName, string outputFolder, string outputName)
         {
-            using (var client = new HttpClient())
+            try
             {
-                client.BaseAddress = new Uri(baseURL);
-                string result = client.GetStringAsync(fileName).Result;
+                using (var client = new HttpClient())
+                {
+                    client.BaseAddress = new Uri(baseURL);
+                    byte[] result = client.GetByteArrayAsync(fileName).Result;
 
-                string outputPath = Path.Combine(outputFolder, fileName);
-                File.WriteAllText(outputPath, result);
-                return outputPath;
+                    string outputPath = Path.Combine(outputFolder, outputName);
+                    File.WriteAllBytes(outputPath, result);
+                    return outputPath;
+                }
+            }
+            catch
+            {
+                UpdaterDebug.WriteLine("Could not find " + Path.Combine(outputFolder, outputName));
+                return string.Empty;
             }
         }
 
-        public static void DownloadUpdate()
+        public static void DownloadUpdate(string updateServerURL, string versionFileName, string updateListFileName)
         {
             //System.Diagnostics.Debugger.Break();
 
-            if (File.Exists(updateFileName)) File.Delete(updateFileName);
-            File.Move(Path.Combine(appdata, updateFileName), updateFileName);
+            if (File.Exists(versionFileName)) File.Delete(versionFileName);
+            File.Move(Path.Combine(appdata, versionFileName), versionFileName);
 
+            UpdaterDebug.WriteLine("Downloading updateList: " + updateListFileName);
             string updateListFilePath = DownloadFile(updateServerURL, updateListFileName, appdata, updateListFileName);
             string[] updateList = File.ReadAllLines(updateListFilePath);
 
@@ -176,6 +174,7 @@ namespace AutoUpdaterLib
             {
                 if (fileName.StartsWith("delete "))
                 {
+                    UpdaterDebug.WriteLine("Deleting: " + fileName);
                     string file = fileName.Substring("delete ".Length);
                     if (File.Exists(file))
                     {
@@ -184,6 +183,7 @@ namespace AutoUpdaterLib
                 }
                 else
                 {
+                    UpdaterDebug.WriteLine("Downloading: " + fileName);
                     DownloadFile(updateServerURL, fileName, string.Empty, fileName);
                 }
             }
